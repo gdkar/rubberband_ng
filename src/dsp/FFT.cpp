@@ -63,20 +63,15 @@ extern "C" {
 }
 #endif
 
-#ifdef USE_KISSFFT
-#include "kissfft/kiss_fftr.h"
-#endif
 #ifndef HAVE_FFTS
 #ifndef HAVE_IPP
 #ifndef HAVE_FFTW3
-#ifndef USE_KISSFFT
 #ifndef USE_BUILTIN_FFT
 #ifndef HAVE_VDSP
 #ifndef HAVE_MEDIALIB
 #ifndef HAVE_OPENMAX
 #ifndef HAVE_SFFT
 #error No FFT implementation selected!
-#endif
 #endif
 #endif
 #endif
@@ -2569,292 +2564,6 @@ private:
 
 #endif /* HAVE_SFFT */
 
-#ifdef USE_KISSFFT
-
-class D_KISSFFT : public FFTImpl
-{
-public:
-    D_KISSFFT(int size) :
-        m_size(size),
-        m_fplanf(0),  
-        m_fplani(0)
-    {
-#ifdef FIXED_POINT
-#error KISSFFT is not configured for float values
-#endif
-        if (sizeof(kiss_fft_scalar) != sizeof(float)) {
-            std::cerr << "ERROR: KISSFFT is not configured for float values"
-                      << std::endl;
-        }
-
-        m_fbuf = new kiss_fft_scalar[m_size + 2];
-        m_fpacked = new kiss_fft_cpx[m_size + 2];
-        m_fplanf = kiss_fftr_alloc(m_size, 0, NULL, NULL);
-        m_fplani = kiss_fftr_alloc(m_size, 1, NULL, NULL);
-    }
-
-    ~D_KISSFFT() {
-        kiss_fftr_free(m_fplanf);
-        kiss_fftr_free(m_fplani);
-        kiss_fft_cleanup();
-
-        delete[] m_fbuf;
-        delete[] m_fpacked;
-    }
-
-    FFT::Precisions
-    getSupportedPrecisions() const {
-        return FFT::SinglePrecision;
-    }
-
-    void initFloat() { }
-    void initDouble() { }
-
-    void packFloat(const float *R__ re, const float *R__ im) {
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            m_fpacked[i].r = re[i];
-        }
-        if (im) {
-            for (int i = 0; i <= hs; ++i) {
-                m_fpacked[i].i = im[i];
-            }
-        } else {
-            for (int i = 0; i <= hs; ++i) {
-                m_fpacked[i].i = 0.f;
-            }
-        }
-    }
-
-    void unpackFloat(float *R__ re, float *R__ im) {
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            re[i] = m_fpacked[i].r;
-        }
-        if (im) {
-            for (int i = 0; i <= hs; ++i) {
-                im[i] = m_fpacked[i].i;
-            }
-        }
-    }        
-
-    void packDouble(const double *R__ re, const double *R__ im) {
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            m_fpacked[i].r = float(re[i]);
-        }
-        if (im) {
-            for (int i = 0; i <= hs; ++i) {
-                m_fpacked[i].i = float(im[i]);
-            }
-        } else {
-            for (int i = 0; i <= hs; ++i) {
-                m_fpacked[i].i = 0.f;
-            }
-        }
-    }
-
-    void unpackDouble(double *R__ re, double *R__ im) {
-        const int hs = m_size/2;
-        for (int i = 0; i <= hs; ++i) {
-            re[i] = double(m_fpacked[i].r);
-        }
-        if (im) {
-            for (int i = 0; i <= hs; ++i) {
-                im[i] = double(m_fpacked[i].i);
-            }
-        }
-    }        
-
-    void forward(const double *R__ realIn, double *R__ realOut, double *R__ imagOut) {
-
-        v_convert(m_fbuf, realIn, m_size);
-        kiss_fftr(m_fplanf, m_fbuf, m_fpacked);
-        unpackDouble(realOut, imagOut);
-    }
-
-    void forwardInterleaved(const double *R__ realIn, double *R__ complexOut) {
-
-        v_convert(m_fbuf, realIn, m_size);
-        kiss_fftr(m_fplanf, m_fbuf, m_fpacked);
-        v_convert(complexOut, (float *)m_fpacked, m_size + 2);
-    }
-
-    void forwardPolar(const double *R__ realIn, double *R__ magOut, double *R__ phaseOut) {
-
-        for (int i = 0; i < m_size; ++i) {
-            m_fbuf[i] = float(realIn[i]);
-        }
-
-        kiss_fftr(m_fplanf, m_fbuf, m_fpacked);
-
-        const int hs = m_size/2;
-
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrt(double(m_fpacked[i].r) * double(m_fpacked[i].r) +
-                             double(m_fpacked[i].i) * double(m_fpacked[i].i));
-        }
-
-        for (int i = 0; i <= hs; ++i) {
-            phaseOut[i] = atan2(double(m_fpacked[i].i), double(m_fpacked[i].r));
-        }
-    }
-
-    void forwardMagnitude(const double *R__ realIn, double *R__ magOut) {
-
-        for (int i = 0; i < m_size; ++i) {
-            m_fbuf[i] = float(realIn[i]);
-        }
-
-        kiss_fftr(m_fplanf, m_fbuf, m_fpacked);
-
-        const int hs = m_size/2;
-
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrt(double(m_fpacked[i].r) * double(m_fpacked[i].r) +
-                             double(m_fpacked[i].i) * double(m_fpacked[i].i));
-        }
-    }
-
-    void forward(const float *R__ realIn, float *R__ realOut, float *R__ imagOut) {
-
-        kiss_fftr(m_fplanf, realIn, m_fpacked);
-        unpackFloat(realOut, imagOut);
-    }
-
-    void forwardInterleaved(const float *R__ realIn, float *R__ complexOut) {
-
-        kiss_fftr(m_fplanf, realIn, (kiss_fft_cpx *)complexOut);
-    }
-
-    void forwardPolar(const float *R__ realIn, float *R__ magOut, float *R__ phaseOut) {
-
-        kiss_fftr(m_fplanf, realIn, m_fpacked);
-
-        const int hs = m_size/2;
-
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrtf(m_fpacked[i].r * m_fpacked[i].r +
-                              m_fpacked[i].i * m_fpacked[i].i);
-        }
-
-        for (int i = 0; i <= hs; ++i) {
-            phaseOut[i] = atan2f(m_fpacked[i].i, m_fpacked[i].r);
-        }
-    }
-
-    void forwardMagnitude(const float *R__ realIn, float *R__ magOut) {
-
-        kiss_fftr(m_fplanf, realIn, m_fpacked);
-
-        const int hs = m_size/2;
-
-        for (int i = 0; i <= hs; ++i) {
-            magOut[i] = sqrtf(m_fpacked[i].r * m_fpacked[i].r +
-                              m_fpacked[i].i * m_fpacked[i].i);
-        }
-    }
-
-    void inverse(const double *R__ realIn, const double *R__ imagIn, double *R__ realOut) {
-
-        packDouble(realIn, imagIn);
-
-        kiss_fftri(m_fplani, m_fpacked, m_fbuf);
-
-        for (int i = 0; i < m_size; ++i) {
-            realOut[i] = m_fbuf[i];
-        }
-    }
-
-    void inverseInterleaved(const double *R__ complexIn, double *R__ realOut) {
-
-        v_convert((float *)m_fpacked, complexIn, m_size + 2);
-
-        kiss_fftri(m_fplani, m_fpacked, m_fbuf);
-
-        for (int i = 0; i < m_size; ++i) {
-            realOut[i] = m_fbuf[i];
-        }
-    }
-
-    void inversePolar(const double *R__ magIn, const double *R__ phaseIn, double *R__ realOut) {
-
-        const int hs = m_size/2;
-
-        for (int i = 0; i <= hs; ++i) {
-            m_fpacked[i].r = float(magIn[i] * cos(phaseIn[i]));
-            m_fpacked[i].i = float(magIn[i] * sin(phaseIn[i]));
-        }
-
-        kiss_fftri(m_fplani, m_fpacked, m_fbuf);
-
-        for (int i = 0; i < m_size; ++i) {
-            realOut[i] = m_fbuf[i];
-        }
-    }
-
-    void inverseCepstral(const double *R__ magIn, double *R__ cepOut) {
-
-        const int hs = m_size/2;
-
-        for (int i = 0; i <= hs; ++i) {
-            m_fpacked[i].r = float(log(magIn[i] + 0.000001));
-            m_fpacked[i].i = 0.0f;
-        }
-
-        kiss_fftri(m_fplani, m_fpacked, m_fbuf);
-
-        for (int i = 0; i < m_size; ++i) {
-            cepOut[i] = m_fbuf[i];
-        }
-    }
-    
-    void inverse(const float *R__ realIn, const float *R__ imagIn, float *R__ realOut) {
-
-        packFloat(realIn, imagIn);
-        kiss_fftri(m_fplani, m_fpacked, realOut);
-    }
-
-    void inverseInterleaved(const float *R__ complexIn, float *R__ realOut) {
-
-        v_copy((float *)m_fpacked, complexIn, m_size + 2);
-        kiss_fftri(m_fplani, m_fpacked, realOut);
-    }
-
-    void inversePolar(const float *R__ magIn, const float *R__ phaseIn, float *R__ realOut) {
-
-        const int hs = m_size/2;
-
-        for (int i = 0; i <= hs; ++i) {
-            m_fpacked[i].r = magIn[i] * cosf(phaseIn[i]);
-            m_fpacked[i].i = magIn[i] * sinf(phaseIn[i]);
-        }
-
-        kiss_fftri(m_fplani, m_fpacked, realOut);
-    }
-
-    void inverseCepstral(const float *R__ magIn, float *R__ cepOut) {
-
-        const int hs = m_size/2;
-
-        for (int i = 0; i <= hs; ++i) {
-            m_fpacked[i].r = logf(magIn[i] + 0.000001f);
-            m_fpacked[i].i = 0.0f;
-        }
-
-        kiss_fftri(m_fplani, m_fpacked, cepOut);
-    }
-
-private:
-    const int m_size;
-    kiss_fftr_cfg m_fplanf;
-    kiss_fftr_cfg m_fplani;
-    kiss_fft_scalar *m_fbuf;
-    kiss_fft_cpx *m_fpacked;
-};
-
-#endif /* USE_KISSFFT */
-
 #ifdef USE_BUILTIN_FFT
 
 class D_Cross : public FFTImpl
@@ -3221,9 +2930,6 @@ FFT::getImplementations()
     impls.insert("ffts");
 #endif
 
-#ifdef USE_KISSFFT
-    impls.insert("kissfft");
-#endif
 #ifdef HAVE_VDSP
     impls.insert("vdsp");
 #endif
@@ -3251,7 +2957,6 @@ FFT::pickDefaultImplementation()
 
     std::string best = "cross";
     if (impls.find("ffts") != impls.end()) best = "ffts";
-    if (impls.find("kissfft") != impls.end()) best = "kissfft";
     if (impls.find("medialib") != impls.end()) best = "medialib";
     if (impls.find("openmax") != impls.end()) best = "openmax";
     if (impls.find("sfft") != impls.end()) best = "sfft";
@@ -3306,10 +3011,6 @@ FFT::FFT(int size, int debugLevel) :
     } else if (impl == "fftw") {
 #ifdef HAVE_FFTW3
         d = new FFTs::D_FFTW(size);
-#endif
-    } else if (impl == "kissfft") {        
-#ifdef USE_KISSFFT
-        d = new FFTs::D_KISSFFT(size);
 #endif
     } else if (impl == "vdsp") {
 #ifdef HAVE_VDSP
@@ -3566,14 +3267,6 @@ FFT::tune()
         d->initDouble();
         candidates[d] = top_id;top_id++;
 #endif
-
-#ifdef USE_KISSFFT
-        os << "Constructing new KISSFFT object for size " << size << "..." << std::endl;
-        d = new FFTs::D_KISSFFT(size);
-        d->initFloat();
-        d->initDouble();
-        candidates[d] = top_id;top_id++;
-#endif        
 
 #ifdef USE_BUILTIN_FFT
         os << "Constructing new Cross FFT object for size " << size << "..." << std::endl;
