@@ -57,7 +57,7 @@ class MovingMedian : public SampleFilter<T>{
 	*m_sorted_end = T(0);
     }
 public:
-    MovingMedian(int size, float percentile = 0.5f) :
+    MovingMedian(size_t size, float percentile = 0.5f) :
         SampleFilter<T>(size),
 	m_frame(std::make_unique<T[]>(size)),
 	m_sorted(std::make_unique<T[]>(size)),

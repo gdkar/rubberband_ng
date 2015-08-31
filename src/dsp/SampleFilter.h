@@ -38,9 +38,9 @@ public:
     SampleFilter &operator=(const SampleFilter &) = delete;
     SampleFilter(SampleFilter &&) = default;
     SampleFilter &operator=(SampleFilter &&) = default;
-    SampleFilter(int size) : m_size(size) {assert(m_size > 0);}
+    SampleFilter(size_t size) : m_size(size) {assert(m_size > 0);}
     virtual ~SampleFilter() { }
-    virtual int getSize() const { return m_size; }
+    virtual size_t  size() const { return m_size; }
     virtual void push(T) = 0;
     virtual T get() const = 0;
     virtual void reset() = 0;

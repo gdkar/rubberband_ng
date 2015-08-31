@@ -50,7 +50,7 @@ public:
     /**
      * Construct a windower of the given type.
      */
-    Window(WindowType type, int size) : m_type(type), m_size(size), m_cache(0) {encache();}
+    Window(WindowType type, size_t size) : m_type(type), m_size(size), m_cache(0) {encache();}
     Window(const Window &w) : m_type(w.m_type), m_size(w.m_size), m_cache(0) {encache();}
     Window &operator=(const Window &w) {
 	if (&w == this) return *this;
@@ -62,9 +62,9 @@ public:
     }
     Window(Window &&w) = default;
     virtual ~Window() {deallocate(m_cache);}
-    inline void cut(T *const R__ block) const {v_multiply(block, m_cache, m_size);}
-    inline void cut(const T *const R__ src, T *const R__ dst) const {v_multiply(dst, src, m_cache, m_size);}
-    inline void add(T *const R__ dst, T scale) const {v_add_with_gain(dst, m_cache, scale, m_size);}
+    inline void cut(T *const block) const {v_multiply(block, m_cache, m_size);}
+    inline void cut(const T *const src, T *const dst) const {v_multiply(dst, src, m_cache, m_size);}
+    inline void add(T *const dst, T scale) const {v_add_with_gain(dst, m_cache, scale, m_size);}
     inline T getRMS() const {
         T total = 0;
         for (int i = 0; i < m_size; ++i) {total += m_cache[i] * m_cache[i];}
@@ -74,12 +74,12 @@ public:
     inline T getArea() const { return m_area; }
     inline T getValue(int i) const { return m_cache[i]; }
     inline WindowType getType() const { return m_type; }
-    inline int getSize() const { return m_size; }
+    inline size_t size() const { return m_size; }
 protected:
     WindowType m_type;
-    int m_size;
-    T *R__ m_cache;
-    T m_area;
+    size_t m_size;
+    T * m_cache;
+    T   m_area;
     void encache();
     void cosinewin(T *, T, T, T, T);
 };
@@ -87,9 +87,9 @@ template <typename T>
 void Window<T>::encache()
 {
     if (!m_cache) m_cache = allocate<T>(m_size);
-    const int n = m_size;
+    const auto n = m_size;
     v_set(m_cache, T(1.0), n);
-    int i;
+    auto i = decltype(n){0};
     switch (m_type) {
     case RectangularWindow:
 	for (i = 0; i < n; ++i) {m_cache[i] *= 0.5;}
@@ -110,18 +110,18 @@ void Window<T>::encache()
         cosinewin(m_cache, 0.42, 0.50, 0.08, 0.0);
 	break;
     case GaussianWindow:
-	for (i = 0; i < n; ++i) {m_cache[i] *= pow(2, - pow((i - (n-1)/2.0) / ((n-1)/2.0 / 3), 2));}
+	for (i = 0; i < n; ++i) {m_cache[i] *= std::pow(2, - std::pow((i - (n-1)/2.0) / ((n-1)/2.0 / 3), 2));}
 	break;
     case ParzenWindow:{
         int N = n-1;
         for (i = 0; i < N/4; ++i) {
-            T m = 2 * pow(1.0 - (T(N)/2 - i) / (T(N)/2), 3);
+            T m = 2 * std::pow(1.0 - (T(N)/2 - i) / (T(N)/2), 3);
             m_cache[i] *= m;
             m_cache[N-i] *= m;
         }
         for (i = N/4; i <= N/2; ++i) {
             int wn = i - N/2;
-            T m = 1.0 - 6 * pow(wn / (T(N)/2), 2) * (1.0 - abs(wn) / (T(N)/2));
+            T m = 1.0 - 6 * std::pow(wn / (T(N)/2), 2) * (1.0 - std::abs(wn) / (T(N)/2));
             m_cache[i] *= m;
             m_cache[N-i] *= m;
         }            
@@ -140,12 +140,12 @@ void Window<T>::encache()
 }
 template <typename T>
 void Window<T>::cosinewin(T *mult, T a0, T a1, T a2, T a3){
-    int n = int(m_size);
+    auto  n = m_size;
     for (int i = 0; i < n; ++i) {
         mult[i] *= (a0
-                    - a1 * cos(2 * M_PI * i / n)
-                    + a2 * cos(4 * M_PI * i / n)
-                    - a3 * cos(6 * M_PI * i / n));
+                    - a1 * std::cos(2 * M_PI * i / n)
+                    + a2 * std::cos(4 * M_PI * i / n)
+                    - a3 * std::cos(6 * M_PI * i / n));
     }
 }
 }

@@ -96,7 +96,7 @@ RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,size_t fftSiz
 //    std::cerr << "ChannelData::setSizes: windowSize = " << windowSize << ", fftSize = " << fftSize << std::endl;
     auto  maxSize = 2 * std::max(windowSize, fftSize);
     auto  realSize = maxSize / 2 + 1;
-    auto  oldMax = static_cast<decltype(maxSize)>(inbuf->getSize());
+    auto  oldMax = static_cast<decltype(maxSize)>(inbuf->size());
     auto  oldReal = oldMax / 2 + 1;
     if (oldMax >= maxSize) {
         // no need to reallocate buffers, just reselect fft
@@ -152,7 +152,7 @@ RubberBandStretcher::Impl::ChannelData::setSizes(size_t windowSize,size_t fftSiz
 }
 void
 RubberBandStretcher::Impl::ChannelData::setOutbufSize(size_t outbufSize){
-    auto oldSize = static_cast<decltype(outbufSize)>(outbuf->getSize());
+    auto oldSize = static_cast<decltype(outbufSize)>(outbuf->size());
 //    std::cerr << "ChannelData::setOutbufSize(" << outbufSize << ") [from " << oldSize << "]" << std::endl;
     if (oldSize < outbufSize) {
         //!!! at this point we need a lock in case a different client
@@ -195,7 +195,7 @@ RubberBandStretcher::Impl::ChannelData::reset(){
     inbuf->reset();
     outbuf->reset();
     if (resampler) resampler->reset();
-    auto size = inbuf->getSize();
+    auto size = inbuf->size();
     for (auto i = 0; i < size; ++i) {
         accumulator[i] = 0.f;
         windowAccumulator[i] = 0.f;

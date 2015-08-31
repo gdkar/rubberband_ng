@@ -67,7 +67,7 @@ public:
      * Return the total capacity of the ring buffer in samples.
      * (This is the argument n passed to the constructor.)
      */
-    int getSize() const;
+    int size() const;
 
     /**
      * Return a new ring buffer (allocated with "new" -- caller must
@@ -218,7 +218,7 @@ RingBuffer<T>::~RingBuffer(){
 
 template <typename T>
 int
-RingBuffer<T>::getSize() const{return m_size;}
+RingBuffer<T>::size() const{return m_size;}
 template <typename T>
 RingBuffer<T> *
 RingBuffer<T>::resized(int newSize) const{

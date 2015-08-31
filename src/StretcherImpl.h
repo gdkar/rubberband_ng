@@ -133,16 +133,16 @@ protected:
                          S *src, // destructive to src
                          Window<float> *window) {
         window->cut(src);
-        const int windowSize = window->getSize();
-        const int hs = targetSize / 2;
+        const auto windowSize = window->size();
+        const auto hs = targetSize / 2;
         if (windowSize == targetSize) {
             v_convert(target, src + hs, hs);
             v_convert(target + hs, src, hs);
         } else {
             v_zero(target, targetSize);
-            int j = targetSize - windowSize/2;
+            auto j = targetSize - windowSize/2;
             while (j < 0) j += targetSize;
-            for (int i = 0; i < windowSize; ++i) {
+            for (auto i = decltype(windowSize){0}; i < windowSize; ++i) {
                 target[j] += src[i];
                 if (++j == targetSize) j = 0;
             }
@@ -163,8 +163,8 @@ protected:
     // n.b. either m_fftSize is an integer multiple of m_windowSize,
     // or vice versa
     size_t m_fftSize;
-    size_t m_aWindowSize; //!!! or use m_awindow->getSize() throughout?
-    size_t m_sWindowSize; //!!! or use m_swindow->getSize() throughout?
+    size_t m_aWindowSize; //!!! or use m_awindow->size() throughout?
+    size_t m_sWindowSize; //!!! or use m_swindow->size() throughout?
     size_t m_increment;
     size_t m_outbufSize;
 

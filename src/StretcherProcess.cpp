@@ -294,8 +294,8 @@ RubberBandStretcher::Impl::processChunkForChannel(size_t c,
         // in a process() call waiting for us to stow away enough
         // input increments to allow the process() call to complete.
         // This is an unhappy situation.
-        auto *oldbuf = cd.outbuf;
-        cd.outbuf = oldbuf->resized(oldbuf->getSize() + (required - ws));
+        auto oldbuf = cd.outbuf;
+        cd.outbuf = oldbuf->resized(oldbuf->size() + (required - ws));
         m_emergencyScavenger.claim(oldbuf);
     }
     writeChunk(c, shiftIncrement, last);
