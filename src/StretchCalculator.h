@@ -87,17 +87,18 @@ protected:
                                 double &totalDisplacement,
                                 double &maxDisplacement,
                                 float adj) const;
-    size_t m_sampleRate     = 0;
-    size_t m_increment      = 0;
-    float m_prevDf          = 0;
-    float m_divergence     = 0;
-    float m_recovery        = 0;
-    float m_prevRatio       = 1.0f;
-    int m_transientAmnesty  = 0;
-    int m_debugLevel        = 0;
-    bool m_useHardPeaks     = 0;
+    size_t m_sampleRate;
+    size_t m_increment;
+    float m_prevDf;
+    double m_divergence;
+    float m_recovery;
+    float m_prevRatio;
+    int m_transientAmnesty;
+    int m_debugLevel;
+    bool m_useHardPeaks;
     std::map<size_t, size_t> m_keyFrameMap;
     std::vector<Peak> m_peaks;
 };
 }
+
 #endif

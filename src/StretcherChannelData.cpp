@@ -167,6 +167,7 @@ RubberBandStretcher::Impl::ChannelData::setResampleBufSize(size_t sz){
     resamplebuf = reallocate_and_zero<float>(resamplebuf, resamplebufSize, sz);
     resamplebufSize = sz;
 }
+
 RubberBandStretcher::Impl::ChannelData::~ChannelData(){
     delete resampler;
     deallocate(resamplebuf);
@@ -184,8 +185,11 @@ RubberBandStretcher::Impl::ChannelData::~ChannelData(){
     deallocate(windowAccumulator);
     deallocate(fltbuf);
     deallocate(dblbuf);
-    for (auto i = ffts.begin(); i != ffts.end(); ++i) {delete i->second;}
+    for (auto i = ffts.begin(); i != ffts.end(); ++i) {
+        delete i->second;
+    }
 }
+
 void
 RubberBandStretcher::Impl::ChannelData::reset(){
     inbuf->reset();
@@ -209,4 +213,5 @@ RubberBandStretcher::Impl::ChannelData::reset(){
     draining = false;
     outputComplete = false;
 }
+
 }
